@@ -53,9 +53,6 @@ Given a user-provided keyword, the system builds a complete analytical pipeline:
 ---
 
 ### 📈 Visual Analytics
-
-All outputs are saved in the `charts/` directory after execution:
-
 - Sentiment distribution (pie chart)
 - Sentiment vs popularity (scatter plot)
 - Motive distribution (bar chart)
@@ -73,7 +70,7 @@ All outputs are saved in the `charts/` directory after execution:
 
 ---
 
-## 🛠️ Setup
+## 🛠️ Setup (for running locally)
 
 ```bash
 python -m pip install -r requirements.txt
@@ -89,17 +86,6 @@ python dm_ccp.py
 - Final aggregated summary statistics
 
 ---
-
-## 📊 Charts Folder (`charts/`)
-
-The following visualizations are generated automatically:
-
-- `chart1_sentiment_pie.png` → Sentiment distribution (generated comments)
-- `chart2_sentiment_vs_popularity.png` → Sentiment score vs popularity scatter plot
-- `chart3_motive_bar.png` → Distribution of content motives
-- `chart4_tone_bar.png` → Tone comparison across sources
-- `chart5_top_keywords.png` → Top extracted keywords (TF-IDF-based)
-- `wordcloud.png` → Word cloud of processed corpus
 
 ## ⚠️ Notes
 
