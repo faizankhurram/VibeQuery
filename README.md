@@ -1,47 +1,108 @@
-This project runs a keyword-driven web scraping and NLP pipeline using `dm_ccp.py`.
+# 🔍 VibeQuery
 
-## What It Does
+This project is an end-to-end keyword-based web scraping and NLP analytics system that collects articles from multiple sources, analyzes their content using classical NLP + transformer models, and generates structured insights with visualizations.
 
-- Collects articles from Wikipedia, Dev.to, and HackerNews
-- Cleans and preprocesses text
-- Runs TF-IDF, LDA topic modeling, motive and tone detection
-- Generates reader-style comments using Flan-T5
-- Performs sentiment analysis on scraped and generated comments
-- Saves charts and a word cloud in the `charts/` folder (created after successful pipeline execution)
+It is executed via `dm_ccp.py`.
 
-## Requirements
+---
 
-- Python 3.10+ (recommended)
+## ✨ What It Does
+
+Given a user-provided keyword, the system builds a complete analytical pipeline:
+
+### 📡 Data Collection
+- Scrapes and aggregates articles from:
+  - Wikipedia (knowledge base articles)
+  - Dev.to (developer blogs via API)
+  - HackerNews (tech discussions + stories)
+- Applies fallback generation if data is insufficient
+
+---
+
+### 🧹 Text Processing
+- Cleans and normalizes raw text
+- Removes stopwords and noise
+- Prepares structured corpus for analysis
+
+---
+
+### 🧠 NLP & Topic Modeling
+- TF-IDF keyword extraction
+- LDA topic modeling for thematic discovery
+- Automatic classification of:
+  - Content motive (Tutorial / Opinion / Academic / Informative / Promotional)
+  - Tone (Objective / Subjective)
+
+---
+
+### 🤖 AI-Generated Content
+- Uses Flan-T5 (google/flan-t5-base) to generate:
+  - Human-like reader comments for each article
+
+---
+
+### 📊 Sentiment Analysis
+- Performs sentiment scoring on:
+  - Scraped comments
+  - AI-generated comments
+- Classifies sentiment as:
+  - Positive
+  - Neutral
+  - Negative
+
+---
+
+### 📈 Visual Analytics
+
+All outputs are saved in the `charts/` directory after execution:
+
+- Sentiment distribution (pie chart)
+- Sentiment vs popularity (scatter plot)
+- Motive distribution (bar chart)
+- Tone comparison across sources
+- Top keywords (horizontal bar chart)
+- Word cloud of corpus terms
+
+---
+
+## ⚙️ Requirements
+
+- Python 3.10+
 - Internet connection (APIs + model download on first run)
+- ~250MB download for Flan-T5 model
 
-## Setup
+---
 
-From the project root:
+## 🛠️ Setup
 
 ```bash
 python -m pip install -r requirements.txt
+python dm_ccp.py
 ```
 
-## Run
+## 📦 Output Structure
+- Data source summary (Wikipedia, Dev.to, HackerNews)
+- Article collection table
+- NLP analysis results (TF-IDF + LDA topics)
+- Motive and tone classification tables
+- Sentiment analysis results (scraped + generated)
+- Final aggregated summary statistics
 
-```bash
-python dm_ccp_fixed.py
-```
+---
 
-When prompted, enter a keyword (example: `neural networks`).
+## 📊 Charts Folder (`charts/`)
 
-## Output
+The following visualizations are generated automatically:
 
-- Terminal tables for data collection, NLP, sentiment, and summary
-- Image files saved in `charts/`:
-  - `chart1_sentiment_pie.png`
-  - `chart2_sentiment_vs_popularity.png`
-  - `chart3_motive_bar.png`
-  - `chart4_tone_bar.png`
-  - `chart5_top_keywords.png`
-  - `wordcloud.png`
+- `chart1_sentiment_pie.png` → Sentiment distribution (generated comments)
+- `chart2_sentiment_vs_popularity.png` → Sentiment score vs popularity scatter plot
+- `chart3_motive_bar.png` → Distribution of content motives
+- `chart4_tone_bar.png` → Tone comparison across sources
+- `chart5_top_keywords.png` → Top extracted keywords (TF-IDF-based)
+- `wordcloud.png` → Word cloud of processed corpus
 
-## Notes
+## ⚠️ Notes
 
-- First run may take longer because `google/flan-t5-base` is downloaded.
-- The script also attempts package installation internally; using `requirements.txt` first is recommended for cleaner setup.
+- First execution may take longer due to:
+  - Downloading `google/flan-t5-base` (~250MB)
+  - Initial NLTK resource setup
