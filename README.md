@@ -4,6 +4,8 @@ This project is an end-to-end keyword-based web scraping and NLP analytics syste
 
 It is executed via `dm_ccp.py`.
 
+Deployed on Streamlit: https://vibequery.streamlit.app
+
 ---
 
 ## ✨ What It Does
