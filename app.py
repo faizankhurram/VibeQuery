@@ -1,5 +1,5 @@
 """
-Insight Engine — Streamlit frontend for the keyword NLP analytics pipeline.
+VibeQuery — Streamlit frontend for the keyword NLP analytics pipeline.
 
 Run with:
     source .venv/bin/activate
@@ -25,15 +25,14 @@ import pipeline as pl
 
 # ─── Page config (must be the very first Streamlit call) ─────────────────────
 st.set_page_config(
-    page_title="Insight Engine",
-    page_icon="🔮",
+    page_title="VibeQuery",
+    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 # ─── Session-state initialisation ────────────────────────────────────────────
 _DEFAULTS = {
-    "dark_mode": True,
     "app_state": "idle",   # idle | running | done
     "keyword": "",
     "df": None,
@@ -45,43 +44,31 @@ for _k, _v in _DEFAULTS.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
-dark: bool = st.session_state.dark_mode
 
-# ─── Design tokens (change with theme) ───────────────────────────────────────
-if dark:
-    BG      = "#0D0D1A"
-    BG2     = "#13132A"
-    BG3     = "#1A1A3A"
-    BORDER  = "rgba(124,58,237,0.22)"
-    ACC1    = "#7C3AED"   # purple
-    ACC2    = "#3B82F6"   # blue
-    T1      = "#E8E6F0"
-    T2      = "#9B97B8"
-    T3      = "#5E5A7A"
-    OK      = "#10B981"
-    WARN    = "#F59E0B"
-    DANGER  = "#EF4444"
-    PTMPL   = "plotly_dark"
-    PBGC    = "#13132A"
-    WC_BG   = "#0D0D1A"
-    WC_MAP  = "cool"
-else:
-    BG      = "#F7F6FF"
-    BG2     = "#FFFFFF"
-    BG3     = "#EEF0FF"
-    BORDER  = "rgba(124,58,237,0.18)"
-    ACC1    = "#6D28D9"
-    ACC2    = "#2563EB"
-    T1      = "#1E1B3A"
-    T2      = "#4B4869"
-    T3      = "#9B98B8"
-    OK      = "#059669"
-    WARN    = "#D97706"
-    DANGER  = "#DC2626"
-    PTMPL   = "plotly_white"
-    PBGC    = "#FFFFFF"
-    WC_BG   = "#F7F6FF"
-    WC_MAP  = "PuBu"
+def _reset_analysis():
+    for key, default in _DEFAULTS.items():
+        st.session_state[key] = default
+    if "kw_input" in st.session_state:
+        del st.session_state.kw_input
+
+# ─── Design tokens (dark theme only) ─────────────────────────────────────────
+BG      = "#0D0D1A"
+BG2     = "#13132A"
+BG3     = "#1A1A3A"
+BORDER  = "rgba(124,58,237,0.22)"
+ACC1    = "#7C3AED"
+ACC2    = "#3B82F6"
+T1      = "#E8E6F0"
+T2      = "#9B97B8"
+T3      = "#6E6A88"
+OK      = "#10B981"
+WARN    = "#F59E0B"
+DANGER  = "#EF4444"
+PTMPL   = "plotly_dark"
+PBGC    = "#13132A"
+PFONT   = "#E8E6F0"
+WC_BG   = "#0D0D1A"
+WC_MAP  = "cool"
 
 # ─── CSS injection ────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -136,7 +123,7 @@ section[data-testid="stSidebar"] {{ display: none !important; }}
 }}
 .stTextInput input::placeholder {{ color: {T3} !important; }}
 
-/* ── All buttons ── */
+/* ── All buttons base ── */
 .stButton > button {{
     font-family: 'Inter', sans-serif !important;
     font-weight: 500 !important;
@@ -144,10 +131,10 @@ section[data-testid="stSidebar"] {{ display: none !important; }}
     transition: all .2s ease !important;
     cursor: pointer !important;
 }}
-/* Analyse button (wrapping div gets class set via markdown workaround) */
-div[data-testid="column"] .stButton > button {{
+/* ── Analyse button (primary type) ── */
+[data-testid="baseButton-primary"] {{
     background: linear-gradient(135deg, {ACC1}, {ACC2}) !important;
-    color: #fff !important;
+    color: #ffffff !important;
     border: none !important;
     padding: 14px 36px !important;
     font-size: 1rem !important;
@@ -156,12 +143,28 @@ div[data-testid="column"] .stButton > button {{
     width: 100% !important;
     box-shadow: 0 4px 20px {ACC1}44 !important;
 }}
-div[data-testid="column"] .stButton > button:hover {{
+[data-testid="baseButton-primary"]:hover {{
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 32px {ACC1}66 !important;
 }}
-div[data-testid="column"] .stButton > button:active {{
+[data-testid="baseButton-primary"]:active {{
     transform: translateY(0) !important;
+}}
+/* ── Secondary / reset buttons ── */
+[data-testid="baseButton-secondary"] {{
+    background: {BG3} !important;
+    color: {T1} !important;
+    border: 1px solid {BORDER} !important;
+    font-size: .85rem !important;
+    padding: 7px 18px !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+}}
+[data-testid="baseButton-secondary"]:hover {{
+    background: {ACC1}22 !important;
+    border-color: {ACC1} !important;
+    transform: none !important;
+    box-shadow: none !important;
 }}
 
 /* ── Progress bar ── */
@@ -243,37 +246,22 @@ hr {{ border: none !important; border-top: 1px solid {BORDER} !important; margin
 
 /* ── Hero ── */
 .ie-hero {{
-    padding: 72px 24px 56px;
+    padding: 72px 24px 48px;
     text-align: center;
     background:
         radial-gradient(ellipse 80% 60% at 50% 0%, {ACC1}14 0%, transparent 70%),
         {BG};
 }}
-.ie-badge {{
-    display: inline-block;
-    background: {ACC1}1A; color: {ACC1};
-    border: 1px solid {ACC1}44;
-    border-radius: 20px; padding: 5px 16px;
-    font-size: .72rem; font-weight: 700;
-    letter-spacing: 1.6px; text-transform: uppercase;
-    margin-bottom: 22px;
-    animation: fadeInDown .6s ease;
-}}
 .ie-title {{
     font-size: clamp(2rem, 5vw, 3.4rem);
     font-weight: 800; line-height: 1.14;
     letter-spacing: -1.5px; color: {T1};
-    margin-bottom: 14px;
+    margin-bottom: 38px;
     animation: fadeInDown .75s ease;
 }}
 .ie-title span {{
     background: linear-gradient(135deg, {ACC1}, {ACC2});
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}}
-.ie-subtitle {{
-    font-size: 1.05rem; color: {T2}; font-weight: 400;
-    max-width: 500px; margin: 0 auto 38px;
-    line-height: 1.65; animation: fadeInUp .8s ease;
 }}
 
 /* ── Stage tracker timeline ── */
@@ -475,22 +463,10 @@ hr {{ border: none !important; border-top: 1px solid {BORDER} !important; margin
 }}
 @keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
 
-/* ── Theme toggle button override (nav area) ── */
-.ie-nav-btn .stButton > button {{
-    background: {BG3} !important;
-    color: {T1} !important;
-    border: 1px solid {BORDER} !important;
-    font-size: .82rem !important;
-    padding: 7px 16px !important;
-    font-weight: 500 !important;
-    width: auto !important;
-    box-shadow: none !important;
-}}
-.ie-nav-btn .stButton > button:hover {{
-    background: {ACC1}22 !important;
-    border-color: {ACC1} !important;
-    transform: none !important;
-    box-shadow: none !important;
+/* ── Disabled button ── */
+[data-testid="baseButton-primary"]:disabled {{
+    opacity: .45 !important;
+    cursor: not-allowed !important;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -609,13 +585,15 @@ def _chart_donut(df: pd.DataFrame) -> go.Figure:
             line=dict(color=PBGC, width=3),
         ),
         textinfo="label+percent",
+        textfont=dict(color=PFONT, size=13),
         hovertemplate="<b>%{label}</b><br>Count: %{value}<br>%{percent}<extra></extra>",
     ))
     fig.update_layout(
         template=PTMPL, paper_bgcolor=PBGC,
+        font=dict(color=PFONT),
         title=dict(text="Sentiment Distribution", x=0.5, xanchor="center",
-                   font=dict(size=15)),
-        legend=dict(orientation="h", y=-0.08),
+                   font=dict(size=15, color=PFONT)),
+        legend=dict(orientation="h", y=-0.08, font=dict(color=PFONT)),
         margin=dict(l=20, r=20, t=60, b=50), height=340,
     )
     return fig
@@ -633,12 +611,16 @@ def _chart_scatter(df: pd.DataFrame) -> go.Figure:
     fig.update_traces(marker=dict(opacity=0.85, line=dict(width=1, color=PBGC)))
     fig.update_layout(
         paper_bgcolor=PBGC, plot_bgcolor=PBGC,
+        font=dict(color=PFONT),
         title=dict(text="Sentiment Score vs Popularity", x=0.5, xanchor="center",
-                   font=dict(size=15)),
-        xaxis_title="Sentiment Score", yaxis_title="Comment Count",
+                   font=dict(size=15, color=PFONT)),
+        xaxis=dict(title="Sentiment Score", color=PFONT,
+                   gridcolor=BORDER, zerolinecolor=BORDER),
+        yaxis=dict(title="Comment Count", color=PFONT,
+                   gridcolor=BORDER),
         legend_title_text="Sentiment",
-        legend=dict(orientation="h", y=-0.15),
-        margin=dict(l=50, r=20, t=60, b=70), height=370,
+        legend=dict(orientation="h", y=-0.18, font=dict(color=PFONT)),
+        margin=dict(l=50, r=20, t=60, b=80), height=370,
     )
     return fig
 
@@ -648,18 +630,23 @@ def _chart_motive(df: pd.DataFrame) -> go.Figure:
     mc.columns = ["motive", "count"]
     fig = px.bar(
         mc, x="count", y="motive", orientation="h",
-        color="count", color_continuous_scale="Purp",
+        color="count", color_continuous_scale="Purples",
+        color_continuous_midpoint=mc["count"].median(),
         text="count", template=PTMPL,
     )
     fig.update_traces(
         textposition="outside",
+        textfont=dict(color=PFONT, size=13),
+        marker=dict(line=dict(width=1, color=BORDER)),
         hovertemplate="<b>%{y}</b><br>Count: %{x}<extra></extra>",
     )
     fig.update_layout(
         paper_bgcolor=PBGC, plot_bgcolor=PBGC,
+        font=dict(color=PFONT),
         title=dict(text="Blog Motive Distribution", x=0.5, xanchor="center",
-                   font=dict(size=15)),
-        xaxis_title="Count", yaxis_title="",
+                   font=dict(size=15, color=PFONT)),
+        xaxis=dict(title="Count", color=PFONT, gridcolor=BORDER),
+        yaxis=dict(title="", color=PFONT),
         coloraxis_showscale=False,
         margin=dict(l=20, r=50, t=60, b=40), height=320,
     )
@@ -672,15 +659,18 @@ def _chart_tone(df: pd.DataFrame) -> go.Figure:
     palette = [ACC1, ACC2]
     fig = go.Figure(go.Bar(
         x=tc["count"], y=tc["tone"], orientation="h",
-        marker_color=palette[:len(tc)],
+        marker=dict(color=palette[:len(tc)], line=dict(width=1, color=BORDER)),
         text=tc["count"], textposition="outside",
+        textfont=dict(color=PFONT, size=13),
         hovertemplate="<b>%{y}</b><br>Count: %{x}<extra></extra>",
     ))
     fig.update_layout(
         template=PTMPL, paper_bgcolor=PBGC, plot_bgcolor=PBGC,
+        font=dict(color=PFONT),
         title=dict(text="Tone Distribution", x=0.5, xanchor="center",
-                   font=dict(size=15)),
-        xaxis_title="Count", yaxis_title="",
+                   font=dict(size=15, color=PFONT)),
+        xaxis=dict(title="Count", color=PFONT, gridcolor=BORDER),
+        yaxis=dict(title="", color=PFONT),
         margin=dict(l=20, r=50, t=60, b=40), height=280,
     )
     return fig
@@ -696,18 +686,22 @@ def _chart_keywords(df: pd.DataFrame):
     )
     fig = px.bar(
         kdf, x="frequency", y="keyword", orientation="h",
-        color="frequency", color_continuous_scale="Turbo",
+        color="frequency", color_continuous_scale="Viridis",
         text="frequency", template=PTMPL,
     )
     fig.update_traces(
         textposition="outside",
+        textfont=dict(color=PFONT, size=13),
+        marker=dict(line=dict(width=1, color=BORDER)),
         hovertemplate="<b>%{y}</b><br>Frequency: %{x}<extra></extra>",
     )
     fig.update_layout(
         paper_bgcolor=PBGC, plot_bgcolor=PBGC,
+        font=dict(color=PFONT),
         title=dict(text="Top 10 Keywords Across All Articles", x=0.5,
-                   xanchor="center", font=dict(size=15)),
-        xaxis_title="Frequency", yaxis_title="",
+                   xanchor="center", font=dict(size=15, color=PFONT)),
+        xaxis=dict(title="Frequency", color=PFONT, gridcolor=BORDER),
+        yaxis=dict(title="", color=PFONT),
         coloraxis_showscale=False,
         margin=dict(l=20, r=50, t=60, b=40), height=390,
     )
@@ -735,58 +729,8 @@ def _wordcloud_image(df: pd.DataFrame) -> io.BytesIO | None:
     return buf
 
 
-# ─── Reusable results renderer (called from both run + done states) ───────────
-def render_results(df: pd.DataFrame, topics: list):
-    """Renders the full results dashboard inline."""
-
-    # ── Insight KPI strip ──────────────────────────────────────────────────────
-    st.markdown(_section_hdr("Live Intelligence Summary"), unsafe_allow_html=True)
-    st.markdown(_insight_cards(df), unsafe_allow_html=True)
-
-    # ── Articles ──────────────────────────────────────────────────────────────
-    st.markdown(_section_hdr("Collected Articles"), unsafe_allow_html=True)
-    st.markdown(_article_cards(df), unsafe_allow_html=True)
-
-    # ── Topics ────────────────────────────────────────────────────────────────
-    st.markdown(_section_hdr("LDA Topics Discovered"), unsafe_allow_html=True)
-    t_cols = st.columns(len(topics))
-    for col, kws_block in zip(t_cols, [_topic_cards([t]) for t in topics]):
-        with col:
-            st.markdown(kws_block, unsafe_allow_html=True)
-
-    # ── Motive + Tone (side by side) ──────────────────────────────────────────
-    st.markdown(_section_hdr("Motive & Tone Analysis"), unsafe_allow_html=True)
-    mc, tc = st.columns(2)
-    with mc:
-        st.plotly_chart(_chart_motive(df), use_container_width=True)
-    with tc:
-        st.plotly_chart(_chart_tone(df), use_container_width=True)
-
-    # ── Sentiment ─────────────────────────────────────────────────────────────
-    st.markdown(_section_hdr("Sentiment Analysis"), unsafe_allow_html=True)
-    dc, sc = st.columns([2, 3])
-    with dc:
-        st.plotly_chart(_chart_donut(df), use_container_width=True)
-    with sc:
-        st.plotly_chart(_chart_scatter(df), use_container_width=True)
-
-    # ── AI Comments ───────────────────────────────────────────────────────────
-    st.markdown(_section_hdr("AI-Generated Reader Comments"), unsafe_allow_html=True)
-    st.markdown(_comment_cards(df), unsafe_allow_html=True)
-
-    # ── Keyword bar ───────────────────────────────────────────────────────────
-    kw_fig = _chart_keywords(df)
-    if kw_fig:
-        st.markdown(_section_hdr("Top Keywords"), unsafe_allow_html=True)
-        st.plotly_chart(kw_fig, use_container_width=True)
-
-    # ── Word cloud ────────────────────────────────────────────────────────────
-    wc_buf = _wordcloud_image(df)
-    if wc_buf:
-        st.markdown(_section_hdr("Keyword Word Cloud"), unsafe_allow_html=True)
-        st.image(wc_buf, use_container_width=True)
-
-    # ── Summary dashboard ─────────────────────────────────────────────────────
+# ─── Summary section (standalone, used by both pipeline run and rerun) ────────
+def _render_summary(df: pd.DataFrame):
     st.markdown("""
 <div class="ie-summary-hdr">
   <h2>Pipeline Summary</h2>
@@ -800,11 +744,11 @@ def render_results(df: pd.DataFrame, topics: list):
     avg_p  = df["comment_count"].mean()
 
     rows = [
-        ("Total Articles", str(len(df))),
-        ("Sources", " · ".join(f"{k} ({v})" for k, v in src_d.items())),
-        ("Motives", " · ".join(f"{k}: {v}" for k, v in mot_d.items())),
-        ("Tones", " · ".join(f"{k}: {v}" for k, v in tone_d.items())),
-        ("Sentiment", " · ".join(f"{k}: {v}" for k, v in sent_d.items())),
+        ("Total Articles",      str(len(df))),
+        ("Sources",             " · ".join(f"{k} ({v})" for k, v in src_d.items())),
+        ("Motives",             " · ".join(f"{k}: {v}" for k, v in mot_d.items())),
+        ("Tones",               " · ".join(f"{k}: {v}" for k, v in tone_d.items())),
+        ("Sentiment",           " · ".join(f"{k}: {v}" for k, v in sent_d.items())),
         ("Avg Popularity Proxy", f"{avg_p:.1f}"),
     ]
     summary_html = "".join(
@@ -823,23 +767,73 @@ def render_results(df: pd.DataFrame, topics: list):
     )
 
 
-# ─── Pipeline executor with live UI ──────────────────────────────────────────
+# ─── Full results renderer — used on theme-toggle reruns (pipeline already done)
+def render_results(df: pd.DataFrame, topics: list):
+    # Articles
+    st.markdown(_section_hdr("Collected Articles"), unsafe_allow_html=True)
+    st.markdown(_article_cards(df), unsafe_allow_html=True)
+
+    # Keywords
+    kw_fig = _chart_keywords(df)
+    if kw_fig:
+        st.markdown(_section_hdr("Top Keywords"), unsafe_allow_html=True)
+        st.plotly_chart(kw_fig, use_container_width=True)
+
+    # Topics
+    st.markdown(_section_hdr("LDA Topics Discovered"), unsafe_allow_html=True)
+    t_cols = st.columns(len(topics))
+    for col, block in zip(t_cols, [_topic_cards([t]) for t in topics]):
+        with col:
+            st.markdown(block, unsafe_allow_html=True)
+
+    # Motive + Tone
+    st.markdown(_section_hdr("Motive & Tone Analysis"), unsafe_allow_html=True)
+    mc, tc = st.columns(2)
+    with mc:
+        st.plotly_chart(_chart_motive(df), use_container_width=True)
+    with tc:
+        st.plotly_chart(_chart_tone(df), use_container_width=True)
+
+    # Sentiment + KPIs
+    st.markdown(_section_hdr("Sentiment Analysis"), unsafe_allow_html=True)
+    st.markdown(_insight_cards(df), unsafe_allow_html=True)
+    dc, sc = st.columns([2, 3])
+    with dc:
+        st.plotly_chart(_chart_donut(df), use_container_width=True)
+    with sc:
+        st.plotly_chart(_chart_scatter(df), use_container_width=True)
+
+    # Comments
+    st.markdown(_section_hdr("AI-Generated Reader Comments"), unsafe_allow_html=True)
+    st.markdown(_comment_cards(df), unsafe_allow_html=True)
+
+    # Word cloud
+    wc_buf = _wordcloud_image(df)
+    if wc_buf:
+        st.markdown(_section_hdr("Keyword Word Cloud"), unsafe_allow_html=True)
+        st.image(wc_buf, use_container_width=True)
+
+    # Summary
+    _render_summary(df)
+
+
+# ─── Pipeline executor with true per-stage progressive rendering ──────────────
 def run_pipeline(keyword: str):
     STAGES = [
-        ("Data Collection",          "🌐"),
-        ("Comment Enrichment",       "💬"),
-        ("Text Preprocessing",       "🧹"),
-        ("TF-IDF Keyword Extraction","📊"),
-        ("LDA Topic Modelling",      "🧠"),
-        ("Motive & Tone Detection",  "🎭"),
-        ("Sentiment Analysis",       "💡"),
-        ("AI Comment Generation",    "🤖"),
-        ("Visualisation Ready",      "🎨"),
+        ("Data Collection",           "🌐"),
+        ("Comment Enrichment",        "💬"),
+        ("Text Preprocessing",        "🧹"),
+        ("TF-IDF Keyword Extraction", "📊"),
+        ("LDA Topic Modelling",       "🧠"),
+        ("Motive & Tone Detection",   "🎭"),
+        ("Sentiment Analysis",        "💡"),
+        ("AI Comment Generation",     "🤖"),
+        ("Visualisation",             "🎨"),
     ]
     n = len(STAGES)
     states = ["pending"] * n
 
-    # ── Layout: pipeline header + progress controls ───────────────────────────
+    # ── Pipeline header ───────────────────────────────────────────────────────
     st.markdown(f"""
 <div class="ie-pipeline-hdr">
   <h2>Running Analysis</h2>
@@ -853,7 +847,18 @@ def run_pipeline(keyword: str):
     with c:
         stage_slots = [st.empty() for _ in range(n)]
 
-    # ── Helper: push a stage to "running" ────────────────────────────────────
+    # ── Result slots pre-allocated BELOW the stage cards ─────────────────────
+    # Each fills in as its stage completes — gives true progressive rendering.
+    slot_articles    = st.empty()   # Stage 0
+    slot_keywords    = st.empty()   # Stage 3
+    slot_topics      = st.empty()   # Stage 4
+    slot_motive_tone = st.empty()   # Stage 5
+    slot_sentiment   = st.empty()   # Stage 7
+    slot_comments    = st.empty()   # Stage 7
+    slot_wordcloud   = st.empty()   # Stage 8
+    slot_summary     = st.empty()   # Stage 8
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
     def _start(i, detail):
         states[i] = "running"
         timeline_slot.markdown(_timeline(states), unsafe_allow_html=True)
@@ -873,7 +878,7 @@ def run_pipeline(keyword: str):
                 unsafe_allow_html=True,
             )
 
-    # render all as pending initially
+    # render all pending initially
     timeline_slot.markdown(_timeline(states), unsafe_allow_html=True)
     with c:
         for i in range(n):
@@ -882,7 +887,7 @@ def run_pipeline(keyword: str):
                 unsafe_allow_html=True,
             )
 
-    # ── Stage 0: Data Collection ─────────────────────────────────────────────
+    # ── Stage 0: Data Collection ──────────────────────────────────────────────
     _start(0, "Scraping Wikipedia, Dev.to, HackerNews…")
     all_data, src_counts = [], {}
     for name, fn in [
@@ -895,37 +900,62 @@ def run_pipeline(keyword: str):
         src_counts[name] = len(result)
     df = pl.build_dataframe(all_data, keyword)
     _done(0, f"Collected {len(df)} articles — {', '.join(f'{k}: {v}' for k, v in src_counts.items())}")
+    # ▶ Show articles immediately
+    with slot_articles.container():
+        st.markdown(_section_hdr("Collected Articles"), unsafe_allow_html=True)
+        st.markdown(_article_cards(df), unsafe_allow_html=True)
 
     # ── Stage 1: Comment Enrichment ───────────────────────────────────────────
     _start(1, "Fetching real user comments from APIs…")
     df, fetched_count = pl.enrich_df_comments(df)
     _done(1, f"Enriched {fetched_count} article(s) with live comments")
 
-    # ── Stage 2: Text Preprocessing ──────────────────────────────────────────
+    # ── Stage 2: Text Preprocessing ───────────────────────────────────────────
     _start(2, "Cleaning and normalising text…")
     df = df.copy()
     df["clean_text"] = df["raw_text"].apply(pl.clean_text)
     _done(2, f"Cleaned {len(df)} documents — stop-words removed")
 
-    # ── Stage 3: TF-IDF ──────────────────────────────────────────────────────
+    # ── Stage 3: TF-IDF ───────────────────────────────────────────────────────
     _start(3, "Fitting TF-IDF vectoriser, extracting keywords…")
     df, features, X = pl.run_tfidf(df)
     top_global = Counter(kw for kws in df["keywords"] for kw in kws).most_common(3)
     _done(3, "Top terms: " + ", ".join(w for w, _ in top_global))
+    # ▶ Show keyword bar immediately
+    kw_fig = _chart_keywords(df)
+    if kw_fig:
+        with slot_keywords.container():
+            st.markdown(_section_hdr("Top Keywords"), unsafe_allow_html=True)
+            st.plotly_chart(kw_fig, use_container_width=True)
 
-    # ── Stage 4: LDA ─────────────────────────────────────────────────────────
+    # ── Stage 4: LDA ──────────────────────────────────────────────────────────
     _start(4, "Fitting LDA topic model…")
     topics = pl.run_lda(X, features, len(df))
     _done(4, f"Discovered {len(topics)} latent topics")
+    # ▶ Show topics immediately
+    with slot_topics.container():
+        st.markdown(_section_hdr("LDA Topics Discovered"), unsafe_allow_html=True)
+        t_cols = st.columns(len(topics))
+        for col, block in zip(t_cols, [_topic_cards([t]) for t in topics]):
+            with col:
+                st.markdown(block, unsafe_allow_html=True)
 
     # ── Stage 5: Motive & Tone ────────────────────────────────────────────────
     _start(5, "Classifying article motive and writing tone…")
     df = pl.apply_motive_tone(df)
-    _done(5, f"Motives: {df['motive'].value_counts().to_dict()} | Tones: {df['tone'].value_counts().to_dict()}")
+    _done(5, f"Motives: {df['motive'].value_counts().to_dict()}")
+    # ▶ Show motive + tone charts immediately
+    with slot_motive_tone.container():
+        st.markdown(_section_hdr("Motive & Tone Analysis"), unsafe_allow_html=True)
+        mc, tc = st.columns(2)
+        with mc:
+            st.plotly_chart(_chart_motive(df), use_container_width=True)
+        with tc:
+            st.plotly_chart(_chart_tone(df), use_container_width=True)
 
-    # ── Stage 6: Sentiment ────────────────────────────────────────────────────
-    _start(6, "Running TextBlob sentiment analysis…")
-    # Sentiment needs generated_comment; run a quick pass on scraped comments first
+    # ── Stage 6: Sentiment (scraped) ──────────────────────────────────────────
+    _start(6, "Running TextBlob sentiment analysis on scraped comments…")
+    df = df.copy()
     df["scraped_sentiment"] = df["comments"].apply(pl.get_sentiment)
     pos = (df["scraped_sentiment"] == "Positive").sum()
     neg = (df["scraped_sentiment"] == "Negative").sum()
@@ -940,21 +970,38 @@ def run_pipeline(keyword: str):
     )
     df = pl.apply_sentiment(df)
     _done(7, f"Generated {len(df)} comments — avg score {df['sentiment_score'].mean():+.2f}")
+    # ▶ Show sentiment charts + insight KPIs + comments immediately
+    with slot_sentiment.container():
+        st.markdown(_section_hdr("Sentiment Analysis"), unsafe_allow_html=True)
+        st.markdown(_insight_cards(df), unsafe_allow_html=True)
+        dc, sc = st.columns([2, 3])
+        with dc:
+            st.plotly_chart(_chart_donut(df), use_container_width=True)
+        with sc:
+            st.plotly_chart(_chart_scatter(df), use_container_width=True)
+    with slot_comments.container():
+        st.markdown(_section_hdr("AI-Generated Reader Comments"), unsafe_allow_html=True)
+        st.markdown(_comment_cards(df), unsafe_allow_html=True)
 
     # ── Stage 8: Visualisation ────────────────────────────────────────────────
-    _start(8, "Preparing Plotly charts and word cloud…")
-    time.sleep(0.4)  # brief visual pause
+    _start(8, "Generating word cloud…")
+    wc_buf = _wordcloud_image(df)
     _done(8, "All visualisations ready")
+    # ▶ Show wordcloud + summary immediately
+    if wc_buf:
+        with slot_wordcloud.container():
+            st.markdown(_section_hdr("Keyword Word Cloud"), unsafe_allow_html=True)
+            st.image(wc_buf, use_container_width=True)
 
-    # ── Persist results ────────────────────────────────────────────────────────
+    with slot_summary.container():
+        _render_summary(df)
+
+    # ── Persist ───────────────────────────────────────────────────────────────
     st.session_state.df            = df
     st.session_state.topics        = topics
     st.session_state.src_counts    = src_counts
     st.session_state.fetched_count = fetched_count
     st.session_state.app_state     = "done"
-
-    st.divider()
-    render_results(df, topics)
 
 
 # ─── Keyword suggestion tooltip (JS injected into parent doc) ─────────────────
@@ -1031,21 +1078,26 @@ def inject_tooltip_js():
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Navigation bar ────────────────────────────────────────────────────────────
-nav_l, nav_r = st.columns([6, 1])
+show_reset = (
+    st.session_state.app_state == "done"
+    and st.session_state.df is not None
+)
+nav_pad_l, nav_l, nav_r, nav_pad_r = st.columns([0.04, 5, 1, 0.04], vertical_alignment="center")
 with nav_l:
     st.markdown(
-        f'<div style="padding:16px 40px;">'
-        f'<span class="ie-logo">🔮 Insight Engine</span>'
+        f'<div style="padding:16px 0;">'
+        f'<span class="ie-logo">🧠 VibeQuery</span>'
         f'</div>',
         unsafe_allow_html=True,
     )
 with nav_r:
-    st.markdown('<div class="ie-nav-btn">', unsafe_allow_html=True)
-    theme_label = "☀ Light" if dark else "🌙 Dark"
-    if st.button(theme_label, key="theme_toggle"):
-        st.session_state.dark_mode = not dark
-        st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
+    if show_reset:
+        st.button(
+            "↩ Reset",
+            key="nav_reset_btn",
+            type="secondary",
+            on_click=_reset_analysis,
+        )
 
 st.markdown(f'<hr style="margin:0;border-color:{BORDER}">', unsafe_allow_html=True)
 
@@ -1053,12 +1105,7 @@ st.markdown(f'<hr style="margin:0;border-color:{BORDER}">', unsafe_allow_html=Tr
 if st.session_state.app_state in ("idle", "done"):
     st.markdown("""
 <div class="ie-hero">
-  <div class="ie-badge">AI · NLP · ANALYTICS</div>
   <h1 class="ie-title">Discover <span>Intelligence</span><br>in Any Topic</h1>
-  <p class="ie-subtitle">
-    Enter a keyword and watch the pipeline scrape real content,
-    extract insights, model topics, and generate AI commentary — live.
-  </p>
 </div>""", unsafe_allow_html=True)
 
     _, inp_col, _ = st.columns([1, 3, 1])
@@ -1083,6 +1130,7 @@ if st.session_state.app_state in ("idle", "done"):
         st.button(
             "Analyze →",
             key="analyze_btn",
+            type="primary",
             on_click=_on_analyze,
             disabled=btn_disabled,
             use_container_width=True,
@@ -1091,24 +1139,12 @@ if st.session_state.app_state in ("idle", "done"):
     # Tooltip JS
     inject_tooltip_js()
 
-    if st.session_state.app_state == "done" and st.session_state.df is not None:
-        # "New analysis" option
-        _, rc, _ = st.columns([1, 3, 1])
-        with rc:
-            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-            if st.button("↩ New Analysis", key="reset_btn", use_container_width=False):
-                st.session_state.app_state = "idle"
-                st.session_state.keyword   = ""
-                st.session_state.df        = None
-                st.session_state.topics    = None
-                st.rerun()
-
 # ── Pipeline execution (live) ─────────────────────────────────────────────────
 if st.session_state.app_state == "running":
     keyword = st.session_state.keyword
     run_pipeline(keyword)
 
-# ── Results (from session state — shown on reruns like theme toggle) ──────────
+# ── Results (from session state — shown on reruns) ────────────────────────────
 elif st.session_state.app_state == "done" and st.session_state.df is not None:
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     st.divider()
