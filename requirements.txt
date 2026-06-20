@@ -4,11 +4,11 @@ nltk
 textblob
 wordcloud
 scikit-learn
-transformers
+transformers>=4.40,<5
 matplotlib
 pandas
 rich
+numpy<2
 torch
 streamlit
 plotly
-torchvision
